@@ -1,0 +1,1337 @@
+\documentclass[11pt]{article}
+
+% --- Packages ---
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage[
+  pdftitle={Mathematical Foundations of Loss Functions in Machine Learning},
+  pdfauthor={Likerener},
+  pdfsubject={Mathematical notes on loss functions in machine learning},
+  pdfkeywords={loss functions, machine learning, empirical risk, Bayes risk, regularization}
+]{hyperref}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage[most]{tcolorbox}
+\usepackage{comment}
+
+% --- Theorem-like environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}[definition]{Proposition}
+
+% --- Colored boxes ---
+\newtcolorbox{mathnote}{
+  colback=blue!4!white, colframe=blue!40!black,
+  title=In Mathematics, fonttitle=\bfseries, sharp corners, boxrule=0.4pt
+}
+\newtcolorbox{mlnote}{
+  colback=orange!5!white, colframe=orange!50!black,
+  title=In Machine Learning, fonttitle=\bfseries, sharp corners, boxrule=0.4pt
+}
+
+% --- Title ---
+\title{Mathematical Foundations of Loss Functions\\ in Machine Learning}
+\author{Likerener}
+\date{\today}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[L]{\textcopyright\ 2026 Likerener}
+\fancyfoot[C]{Mathematical Foundations of Loss Functions in ML}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\begin{document}
+\maketitle
+
+\section*{Preface}
+
+This document develops the standard mathematical scaffolding around
+\emph{loss functions} in machine learning. For each notion -- predictors,
+loss, risk, empirical risk, Bayes optimality, regularisation -- we (i)~give
+a textbook definition, (ii)~state the principal mathematical properties, and
+(iii)~interpret the object in machine-learning practice. 
+
+%%% The document is self-contained: a topic-indexed list of textbook references is provided at the end.
+
+\section{Predictors, Losses, and Risk}
+
+A supervised-learning problem is specified by a data-generating distribution
+$\mathcal{P}$ on $\mathcal{X} \times \mathcal{Y}$, a predictor
+$f : \mathcal{X} \to \widehat{\mathcal{Y}}$, and a \emph{loss function}
+\[
+  L : \mathcal{Y} \times \widehat{\mathcal{Y}} \;\longrightarrow\; \mathbb{R}_{\geq 0}.
+\]
+The quantity to be minimised is the \emph{risk}, i.e.\ the expected loss
+under the data distribution:
+\[
+  R(f) \;:=\; \mathbb{E}_{(X, Y) \sim \mathcal{P}}\!\left[L\bigl(Y, f(X)\bigr)\right]
+  \;=\; \int_{\mathcal{X} \times \mathcal{Y}} L\bigl(y, f(x)\bigr)\, \mathrm{d}\mathcal{P}(x, y).
+\]
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\paragraph{Infimum and supremum.}
+
+\begin{definition}[Infimum and supremum]
+For a nonempty set $S \subseteq \mathbb{R}$, the \emph{supremum}
+$\sup S \in \mathbb{R} \cup \{+\infty\}$ is the least upper bound of $S$:
+(i)~$s \leq \sup S$ for every $s \in S$, and (ii)~for any $u < \sup S$
+there exists $s \in S$ with $s > u$. The \emph{infimum} is the greatest
+lower bound, defined dually as $\inf S := -\sup(-S)$. The completeness
+axiom of $\mathbb{R}$ guarantees that $\sup S$ and $\inf S$ exist (possibly
+$\pm\infty$). Unlike $\min$ and $\max$, an infimum or supremum need not
+itself belong to $S$.
+\end{definition}
+
+\paragraph{Measurable spaces and measurable functions.}
+
+\begin{definition}[$\sigma$-algebra, measurable space, measurable function]
+A \emph{$\sigma$-algebra} on a set $\Omega$ is a collection
+$\mathcal{F} \subseteq 2^{\Omega}$ containing $\Omega$ and closed under
+complementation and countable unions. The pair $(\Omega, \mathcal{F})$ is a
+\emph{measurable space}. A function
+$f : (\Omega_{1}, \mathcal{F}_{1}) \to (\Omega_{2}, \mathcal{F}_{2})$ is
+\emph{measurable} if $f^{-1}(A) \in \mathcal{F}_{1}$ for every
+$A \in \mathcal{F}_{2}$. For countable spaces we tacitly take
+$\mathcal{F} = 2^{\Omega}$ (all subsets are measurable), so measurability
+becomes a vacuous condition.
+\end{definition}
+
+\paragraph{Sets.}
+
+\begin{definition}[Set]
+A \emph{set} is a collection of distinct, well-defined objects considered as a
+whole. The objects are its \emph{elements}; we write $a \in A$ when $a$ is an
+element of $A$. Two sets are equal iff they have the same elements (axiom of
+extensionality):
+\(
+  A = B \iff (\forall x)(x \in A \leftrightarrow x \in B).
+\)
+A set may be specified by roster $\{a_1, \dots, a_n\}$ or by set-builder
+notation $\{x \in U : P(x)\}$.
+\end{definition}
+
+\paragraph{Cartesian products.}
+
+\begin{definition}[Cartesian product and power]
+For sets $A, B$, the \emph{Cartesian product} is
+\(
+  A \times B := \{(a, b) : a \in A,\ b \in B\}.
+\)
+For finite sets $|A \times B| = |A| \cdot |B|$. The product of $n$ sets is
+$A_1 \times \cdots \times A_n := \{(a_1, \dots, a_n) : a_i \in A_i\}$, and the
+$n$-th Cartesian power of a single set is
+$A^n := \underbrace{A \times \cdots \times A}_{n}$.
+\end{definition}
+
+\paragraph{Subsets.}
+
+\begin{definition}[Subset]
+$A \subseteq B$ iff every element of $A$ belongs to $B$. If additionally
+$A \neq B$, $A$ is a \emph{proper subset} of $B$, written $A \subsetneq B$.
+\end{definition}
+
+\paragraph{Probability spaces (Kolmogorov axioms).}
+
+\begin{definition}[Probability space]
+A \emph{probability space} is a triple $(\Omega, \mathcal{F}, \mathbb{P})$
+consisting of a sample space $\Omega$, a $\sigma$-algebra $\mathcal{F}$ of
+events on $\Omega$, and a \emph{probability measure}
+$\mathbb{P} : \mathcal{F} \to [0, 1]$ satisfying Kolmogorov's three axioms:
+\begin{enumerate}[label=(\roman*), leftmargin=2em]
+  \item (\emph{non-negativity}) $\mathbb{P}(A) \geq 0$ for every
+        $A \in \mathcal{F}$;
+  \item (\emph{normalisation}) $\mathbb{P}(\Omega) = 1$;
+  \item (\emph{countable additivity}) for any pairwise disjoint family
+        $\{A_{i}\}_{i \in \mathbb{N}} \subseteq \mathcal{F}$,
+        \[
+          \mathbb{P}\!\biggl(\,\bigcup_{i \in \mathbb{N}} A_{i}\biggr)
+          \;=\; \sum_{i \in \mathbb{N}} \mathbb{P}(A_{i}).
+        \]
+\end{enumerate}
+\end{definition}
+
+\paragraph{Random variables and distributions.}
+
+\begin{definition}[Random variable; pushforward distribution; joint and marginal]
+A \emph{random variable} taking values in a measurable space
+$(\mathcal{X}, \mathcal{F}_{\mathcal{X}})$ is a measurable function
+$X : (\Omega, \mathcal{F}) \to (\mathcal{X}, \mathcal{F}_{\mathcal{X}})$. Its
+\emph{distribution} (or \emph{law}) is the \emph{pushforward measure}
+$\mathcal{P}_{X}$ on $\mathcal{X}$ defined by
+\[
+  \mathcal{P}_{X}(A) \;:=\; \mathbb{P}\bigl(X^{-1}(A)\bigr)
+  \;=\; \mathbb{P}(X \in A), \qquad A \in \mathcal{F}_{\mathcal{X}}.
+\]
+For two random variables $X, Y$ on the same probability space, their
+\emph{joint distribution} $\mathcal{P}_{X, Y}$ is the pushforward of
+$\mathbb{P}$ by the map $\omega \mapsto (X(\omega), Y(\omega))$. The
+\emph{marginal distribution} of $X$ is recovered by integrating out $Y$:
+$\mathcal{P}_{X}(A) = \mathcal{P}_{X, Y}(A \times \mathcal{Y})$.
+\end{definition}
+
+\paragraph{Independence.}
+
+\begin{definition}[Independent random variables]
+Two random variables $X, Y$ are \emph{independent} if their joint
+distribution factorises into the product of marginals:
+\[
+  \mathcal{P}_{X, Y}(A \times B) \;=\; \mathcal{P}_{X}(A)\,\mathcal{P}_{Y}(B)
+\]
+for all measurable $A \subseteq \mathcal{X}$ and $B \subseteq \mathcal{Y}$.
+Equivalently, for any pair of events $\{X \in A\}, \{Y \in B\}$,
+$\mathbb{P}(X \in A,\, Y \in B) = \mathbb{P}(X \in A)\,\mathbb{P}(Y \in B)$.
+A family $X_{1}, \dots, X_{n}$ is \emph{mutually independent} if the joint
+distribution factorises into the $n$-fold product of marginals.
+\end{definition}
+
+\paragraph{Lebesgue integral.}
+
+\begin{definition}[Lebesgue integral]
+The \emph{Lebesgue integral} of a measurable function
+$f : (\Omega, \mathcal{F}) \to \mathbb{R}_{\geq 0}$ with respect to
+$\mathbb{P}$ is constructed in three stages.
+\begin{enumerate}[label=(\arabic*), leftmargin=2em]
+  \item (\emph{Simple functions}) For
+        $f = \sum_{i=1}^{n} a_{i}\, \mathbf{1}_{A_{i}}$ with
+        $a_{i} \geq 0$ and disjoint $A_{i} \in \mathcal{F}$,
+        $\displaystyle \int_{\Omega} f\, \mathrm{d}\mathbb{P}
+         \;:=\; \sum_{i=1}^{n} a_{i}\, \mathbb{P}(A_{i}).$
+  \item (\emph{Non-negative functions}) For general non-negative measurable
+        $f$,
+        \[
+          \int_{\Omega} f\, \mathrm{d}\mathbb{P}
+          \;:=\; \sup\!\Bigl\{\,
+            \textstyle\int_{\Omega} s\, \mathrm{d}\mathbb{P}
+            \;:\; s \text{ simple},\ 0 \leq s \leq f \,\Bigr\}.
+        \]
+  \item (\emph{Signed functions}) For a general measurable $f$, write
+        $f = f^{+} - f^{-}$ with $f^{\pm} \geq 0$ and define
+        $\int f\, \mathrm{d}\mathbb{P}
+         := \int f^{+}\, \mathrm{d}\mathbb{P} - \int f^{-}\, \mathrm{d}\mathbb{P}$,
+        provided not both pieces are infinite.
+\end{enumerate}
+The Lebesgue integral coincides with the Riemann integral whenever both
+exist, but is defined for a vastly larger class of functions and satisfies
+strong convergence theorems (monotone, dominated, Fatou).
+\end{definition}
+
+\paragraph{Expectation and conditional expectation.}
+
+\begin{definition}[Expectation and conditional expectation]
+For a real-valued random variable $Z$ on a probability space
+$(\Omega, \mathcal{F}, \mathbb{P})$, the \emph{expectation} is the Lebesgue
+integral of $Z$ against $\mathbb{P}$:
+\[
+  \mathbb{E}[Z] \;:=\; \int_{\Omega} Z\, \mathrm{d}\mathbb{P}.
+\]
+On a countable set with PMF $p$, this reduces to
+$\mathbb{E}[Z] = \sum_{z} z\, p(z)$ when the series converges absolutely.
+The \emph{conditional expectation} of $Y$ given $X = x$ is
+\[
+  \mathbb{E}[Y \mid X = x] \;:=\; \int y\, \mathrm{d}\mathcal{P}_{Y \mid X = x}(y),
+\]
+or $\sum_{y} y\, p(y \mid x)$ in the discrete case. The
+\emph{law of total expectation} (tower property) states
+\[
+  \mathbb{E}[Y] \;=\; \mathbb{E}_{X}\!\bigl[\mathbb{E}[Y \mid X]\bigr].
+\]
+\end{definition}
+
+\paragraph{Variance.}
+
+\begin{definition}[Variance and standard deviation]
+For a real-valued random variable $Z$ with $\mathbb{E}[Z^{2}] < \infty$ and
+mean $\mu := \mathbb{E}[Z]$, the \emph{variance} is
+\[
+  \operatorname{Var}(Z) \;:=\; \mathbb{E}\!\bigl[(Z - \mu)^{2}\bigr]
+  \;=\; \mathbb{E}[Z^{2}] - \mu^{2} \;\geq\; 0.
+\]
+It satisfies $\operatorname{Var}(aZ + b) = a^{2}\operatorname{Var}(Z)$ and,
+for independent $Z_{1}, Z_{2}$,
+$\operatorname{Var}(Z_{1} + Z_{2}) = \operatorname{Var}(Z_{1}) + \operatorname{Var}(Z_{2})$.
+The \emph{standard deviation} is $\sigma(Z) := \sqrt{\operatorname{Var}(Z)}$.
+\end{definition}
+
+\paragraph{Random data and predictors.}
+
+\begin{definition}[Data-generating distribution and predictor]
+Let $(\mathcal{X}, \mathcal{F}_{\mathcal{X}})$ and
+$(\mathcal{Y}, \mathcal{F}_{\mathcal{Y}})$ be measurable spaces. The
+\emph{data-generating distribution} is a probability measure $\mathcal{P}$ on
+the product space $\mathcal{X} \times \mathcal{Y}$; we write
+$(X, Y) \sim \mathcal{P}$. A \emph{predictor} (or \emph{hypothesis}) is a
+measurable function $f : \mathcal{X} \to \widehat{\mathcal{Y}}$, where the
+\emph{prediction space} $\widehat{\mathcal{Y}}$ may differ from $\mathcal{Y}$
+(e.g.\ probabilistic predictions for classification take values in the
+simplex $\Delta(\mathcal{Y})$). The collection of admissible predictors is
+the \emph{hypothesis class} $\mathcal{H} \subseteq \widehat{\mathcal{Y}}^{\mathcal{X}}$.
+\end{definition}
+
+\begin{mathnote}
+A predictor is a measurable function, not just a function: measurability
+ensures that $f(X)$ is a random variable and that expectations of $L(Y, f(X))$
+are well-defined. For finite or countable $\mathcal{X}, \mathcal{Y}$ this is
+automatic; for continuous spaces it is a non-trivial regularity assumption.
+\end{mathnote}
+
+\begin{mlnote}
+In supervised learning, the hypothesis class $\mathcal{H}$ is realised by a
+parameterised model family $\{f_\theta : \theta \in \Theta\}$ -- linear
+models, decision trees, neural networks. Choosing $\mathcal{H}$ is the
+first design decision in any ML problem and trades off expressiveness
+against estimability.
+\end{mlnote}
+
+\paragraph{Loss functions.}
+
+\begin{definition}[Loss function]
+A \emph{loss function} on target space $\mathcal{Y}$ and prediction space
+$\widehat{\mathcal{Y}}$ is a measurable map
+\[
+  L : \mathcal{Y} \times \widehat{\mathcal{Y}} \;\to\; \mathbb{R}_{\geq 0},
+\]
+quantifying the cost incurred by predicting $\hat y$ when the true target
+is $y$. By convention $L(y, \hat y) = 0$ when the prediction exactly matches
+the target.
+\end{definition}
+
+\begin{mathnote}
+The codomain is taken non-negative for two reasons: (i)~it makes the risk
+$\mathbb{E}[L]$ well-defined as a Lebesgue integral, and (ii)~it ensures
+that the optimisation problem $\min_f \mathbb{E}[L(Y, f(X))]$ has a
+well-defined infimum. Some authors allow signed losses, but then one must
+work with the integral of the positive and negative parts separately.
+\end{mathnote}
+
+\begin{mlnote}
+A loss is the operational specification of "what we are trying to do." A
+neural network with a different loss is a different algorithm -- the same
+architecture trained with cross-entropy vs.\ squared loss behaves
+fundamentally differently. Choosing the loss is therefore the second design
+decision, immediately after $\mathcal{H}$.
+\end{mlnote}
+
+\paragraph{Risk.}
+
+\begin{definition}[Risk / generalisation error]
+The \emph{risk} (or \emph{expected loss}, or \emph{generalisation error}) of
+a predictor $f$ under the data-generating distribution $\mathcal{P}$ is
+\[
+  R(f) \;:=\; \mathbb{E}_{(X, Y) \sim \mathcal{P}}\!\left[L\bigl(Y, f(X)\bigr)\right]
+  \;=\; \int_{\mathcal{X} \times \mathcal{Y}} L\bigl(y, f(x)\bigr) \,\mathrm{d}\mathcal{P}(x, y).
+\]
+\end{definition}
+
+\begin{mathnote}
+$R(\cdot)$ is a functional on the hypothesis class, $R : \mathcal{H} \to
+\mathbb{R}_{\geq 0}$. By the law of total expectation it factorises as
+\[
+  R(f) \;=\; \mathbb{E}_{X}\!\left[
+    \mathbb{E}_{Y \mid X}\!\left[L(Y, f(X)) \,\big|\, X\right]
+  \right],
+\]
+which separates the dependence on the marginal $\mathcal{P}_X$ from the
+conditional $\mathcal{P}_{Y \mid X}$. This decomposition is the
+starting-point for the Bayes-optimal analysis in Section~6.
+\end{mathnote}
+
+\begin{mlnote}
+$R(f)$ is what we ultimately care about -- the average loss on \emph{future}
+data drawn from the same distribution. It is unobservable because
+$\mathcal{P}$ is unknown; everything in supervised learning is an attempt
+to estimate or upper-bound this quantity from finite data.
+\end{mlnote}
+
+\section{Empirical Risk and Empirical Risk Minimisation}
+
+Since $\mathcal{P}$ is unknown, $R(f)$ cannot be evaluated directly. Given an
+i.i.d.\ sample $\mathcal{D}_n = \{(x_i, y_i)\}_{i=1}^{n}$ from $\mathcal{P}$,
+the \emph{empirical risk} is the sample-mean estimator of $R(f)$:
+\[
+  \widehat{R}_n(f) \;:=\; \frac{1}{n} \sum_{i=1}^{n} L\bigl(y_i, f(x_i)\bigr).
+\]
+\emph{Empirical Risk Minimisation} (ERM) selects the predictor minimising
+this empirical surrogate over a hypothesis class $\mathcal{H}$:
+\[
+  \widehat{f}_n \;\in\; \arg\min_{f \in \mathcal{H}} \widehat{R}_n(f).
+\]
+The \emph{generalisation gap} is the discrepancy $R(f) - \widehat{R}_n(f)$
+between true and empirical risk.
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\paragraph{Independent and identically distributed samples.}
+
+\begin{definition}[i.i.d.\ random variables]
+Random variables $Z_{1}, \dots, Z_{n}$ are \emph{independent and identically
+distributed} (i.i.d.) under a distribution $\mathcal{P}$ if
+\begin{enumerate}[label=(\roman*), leftmargin=2em]
+  \item each $Z_{i}$ has marginal distribution $\mathcal{P}$;
+  \item the joint distribution factorises:
+        $\mathbb{P}(Z_{1} \in A_{1}, \dots, Z_{n} \in A_{n})
+        = \prod_{i=1}^{n} \mathbb{P}(Z_{i} \in A_{i})$ for all measurable
+        $A_{1}, \dots, A_{n}$.
+\end{enumerate}
+The joint distribution of $(Z_{1}, \dots, Z_{n})$ is the
+\emph{$n$-fold product measure} $\mathcal{P}^{\otimes n}$.
+\end{definition}
+
+\paragraph{Empirical risk.}
+
+\begin{definition}[Empirical risk]
+Given an i.i.d.\ training sample
+$\mathcal{D}_n = \{(x_i, y_i)\}_{i=1}^{n} \sim \mathcal{P}^{\otimes n}$, the
+\emph{empirical risk} of a predictor $f$ is
+\[
+  \widehat{R}_n(f) \;:=\; \frac{1}{n} \sum_{i=1}^{n} L\bigl(y_i, f(x_i)\bigr).
+\]
+\end{definition}
+
+\begin{proposition}[Unbiasedness and variance of $\widehat{R}_n$]
+For any fixed $f$,
+\[
+  \mathbb{E}\bigl[\widehat{R}_n(f)\bigr] = R(f),
+  \qquad
+  \operatorname{Var}\bigl(\widehat{R}_n(f)\bigr) = \frac{\operatorname{Var}(L(Y, f(X)))}{n}.
+\]
+\end{proposition}
+
+\paragraph{Modes of stochastic convergence.}
+
+\begin{definition}[Almost sure, in probability, in distribution]
+Let $Z_{1}, Z_{2}, \dots$ be real-valued random variables and $Z$ another
+such. The sequence \emph{converges to $Z$}:
+\begin{itemize}[leftmargin=2em]
+  \item \emph{almost surely}, written $Z_n \xrightarrow{\text{a.s.}} Z$, if
+        $\mathbb{P}\bigl(\lim_{n \to \infty} Z_n = Z\bigr) = 1$;
+  \item \emph{in probability}, written $Z_n \xrightarrow{\;p\;} Z$, if for
+        every $\varepsilon > 0$,
+        $\mathbb{P}(|Z_n - Z| > \varepsilon) \to 0$ as $n \to \infty$;
+  \item \emph{in distribution}, written $Z_n \xrightarrow{\;d\;} Z$, if
+        $\mathbb{E}[g(Z_n)] \to \mathbb{E}[g(Z)]$ for every bounded
+        continuous function $g$.
+\end{itemize}
+The implications are
+$\xrightarrow{\text{a.s.}} \;\Rightarrow\; \xrightarrow{\;p\;} \;\Rightarrow\; \xrightarrow{\;d\;}$;
+the reverse implications fail in general.
+\end{definition}
+
+\begin{proposition}[Strong and weak laws of large numbers]
+Let $Z_1, Z_2, \dots$ be i.i.d.\ with $\mathbb{E}[|Z_1|] < \infty$ and mean
+$\mu = \mathbb{E}[Z_1]$. Then the sample mean
+$\bar{Z}_n := \tfrac{1}{n}\sum_{i=1}^n Z_i$ satisfies
+$\bar{Z}_n \xrightarrow{\text{a.s.}} \mu$ (\emph{strong LLN}), which implies
+$\bar{Z}_n \xrightarrow{\;p\;} \mu$ (\emph{weak LLN}).
+\end{proposition}
+
+\paragraph{Hoeffding's inequality.}
+
+\begin{proposition}[Hoeffding's inequality]
+Let $Z_{1}, \dots, Z_{n}$ be independent random variables with
+$Z_{i} \in [a_{i}, b_{i}]$ almost surely, and let
+$\bar{Z}_n = \tfrac{1}{n}\sum_{i=1}^n Z_i$. Then for any $t > 0$,
+\[
+  \mathbb{P}\!\Bigl(\,\bigl|\bar{Z}_n - \mathbb{E}[\bar{Z}_n]\bigr| > t \,\Bigr)
+  \;\leq\; 2 \exp\!\Biggl(-\frac{2 n^{2} t^{2}}{\sum_{i=1}^n (b_i - a_i)^{2}}\Biggr).
+\]
+Applied to $Z_i = L(y_i, f(x_i))$ with all $Z_i \in [0, B]$, this gives the
+empirical-risk concentration bound
+\[
+  \mathbb{P}\!\Bigl(\,\bigl|\widehat{R}_n(f) - R(f)\bigr| > t \,\Bigr)
+  \;\leq\; 2 \exp\!\left(-\frac{2 n t^{2}}{B^{2}}\right).
+\]
+\end{proposition}
+
+\begin{mathnote}
+$\widehat{R}_n$ is the sample-mean estimator of $R$, so by the law of large
+numbers $\widehat{R}_n(f) \to R(f)$ almost surely as $n \to \infty$. The
+$\mathcal{O}(1/\sqrt{n})$ concentration rate is the foundation of every
+finite-sample generalisation bound in statistical learning theory.
+\end{mathnote}
+
+\begin{mlnote}
+The empirical risk is what your training loop actually reports -- it is the
+average per-example loss on the training set. Mini-batch SGD adds a second
+stochastic approximation: at each step, $\widehat{R}_n$ is itself replaced
+by an average over a mini-batch, yielding an unbiased gradient estimate of
+$\widehat{R}_n$.
+\end{mlnote}
+
+\paragraph{The $\arg\min$ and $\arg\max$ operators.}
+
+\begin{definition}[$\arg\min$ and $\arg\max$]
+For a function $g : X \to \mathbb{R}$ on a nonempty set $X$, the
+\emph{arg-minimum} and \emph{arg-maximum} are the (possibly empty, possibly
+multi-valued) sets
+\[
+  \arg\min_{x \in X} g(x) \;:=\; \bigl\{ x_{\ast} \in X \;:\;
+    g(x_{\ast}) \leq g(x)\ \text{for all } x \in X \bigr\},
+\]
+\[
+  \arg\max_{x \in X} g(x) \;:=\; \bigl\{ x_{\ast} \in X \;:\;
+    g(x_{\ast}) \geq g(x)\ \text{for all } x \in X \bigr\}.
+\]
+They are related by
+$\arg\min_{x} g(x) = \arg\max_{x}\!\bigl(-g(x)\bigr)$, and both exist (are
+nonempty) whenever $X$ is finite or whenever $g$ is continuous and $X$ is
+compact. When the set is a singleton, we abuse notation and identify
+$\arg\min$ (resp.\ $\arg\max$) with its unique element.
+\end{definition}
+
+\paragraph{Empirical risk minimisation and the generalisation gap.}
+
+\begin{definition}[ERM]
+The \emph{empirical risk minimiser} over a hypothesis class $\mathcal{H}$ is
+\[
+  \widehat{f}_n \;\in\; \arg\min_{f \in \mathcal{H}} \widehat{R}_n(f).
+\]
+The \emph{generalisation gap} of a predictor $f$ is
+$R(f) - \widehat{R}_n(f)$.
+\end{definition}
+
+\begin{mathnote}
+Bounding the generalisation gap uniformly over $\mathcal{H}$ -- that is,
+controlling $\sup_{f \in \mathcal{H}} |R(f) - \widehat{R}_n(f)|$ -- is the
+central problem of statistical learning theory. Capacity measures such as
+VC dimension, Rademacher complexity, and PAC-Bayes bounds all serve this
+purpose.
+\end{mathnote}
+
+\begin{mlnote}
+Most training procedures (gradient descent on a loss) are approximations of
+ERM. Overfitting is the empirical phenomenon by which
+$\widehat{R}_n(\widehat{f}_n)$ becomes small while $R(\widehat{f}_n)$
+remains large, i.e.\ the generalisation gap is large. This motivates
+regularisation (\S 7).
+\end{mlnote}
+
+\section{Regression Losses}
+
+For real-valued targets $\mathcal{Y} = \widehat{\mathcal{Y}} = \mathbb{R}$,
+the three canonical losses are
+\[
+  L_{\mathrm{sq}}(y, \hat y) \;=\; (y - \hat y)^{2}
+  \qquad \text{(squared loss)},
+\]
+\[
+  L_{\mathrm{abs}}(y, \hat y) \;=\; |y - \hat y|
+  \qquad \text{(absolute loss)},
+\]
+\[
+  L_{\mathrm{Huber}}^{\delta}(y, \hat y) \;=\;
+  \begin{cases}
+    \tfrac{1}{2}(y - \hat y)^{2}, & |y - \hat y| \leq \delta,\\[2pt]
+    \delta\,|y - \hat y| \,-\, \tfrac{1}{2}\delta^{2}, & |y - \hat y| > \delta,
+  \end{cases}
+  \qquad \text{(Huber loss with threshold } \delta > 0\text{)}.
+\]
+All three are convex; the first is $C^{\infty}$, the second is non-smooth
+at zero, and the third is the unique $C^{1}$ interpolation between them.
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\paragraph{Convex and strictly convex functions.}
+
+\begin{definition}[Convex, strictly convex, smooth]
+A function $g : C \to \mathbb{R}$ on a convex set $C \subseteq \mathbb{R}^{d}$
+is \emph{convex} if for all $x, x' \in C$ and $\lambda \in [0, 1]$
+\[
+  g\bigl(\lambda x + (1 - \lambda) x'\bigr)
+  \;\leq\; \lambda\, g(x) + (1 - \lambda)\, g(x').
+\]
+It is \emph{strictly convex} if the inequality is strict whenever $x \neq x'$
+and $\lambda \in (0, 1)$, and is \emph{$L$-smooth} (with constant $L > 0$) if
+$\nabla g$ is $L$-Lipschitz: $\|\nabla g(x) - \nabla g(x')\| \leq L \|x - x'\|$.
+For twice-differentiable $g$ on a convex domain, convexity is equivalent to 
+$\nabla^2 g(x)\succeq 0$. If $\nabla^2 g(x)\succ 0$ everywhere, then $g$ is strictly convex, but the converse need not hold.
+\end{definition}
+
+\begin{mathnote}
+Convexity is the structural property under which any local minimum of $g$
+is also a global minimum, and the gradient $\nabla g$ has the variational
+characterisation
+$g(x') \geq g(x) + \langle \nabla g(x),\, x' - x\rangle$. These two facts
+underlie essentially all of convex optimisation.
+\end{mathnote}
+
+\begin{mlnote}
+A loss function inherits convexity from being convex in its prediction
+argument $\hat y$. Convex losses give well-behaved optimisation -- no spurious
+local minima, monotone progress under gradient descent -- but real-world ML
+losses (e.g.\ deep-network training losses) are typically non-convex in the
+parameters $\theta$ even when the underlying loss $L(y, \cdot)$ is convex.
+\end{mlnote}
+
+\paragraph{Smoothness class $C^{k}$.}
+
+\begin{definition}[$C^{k}$ class]
+A function $g : U \to \mathbb{R}$ on an open set $U \subseteq \mathbb{R}^{d}$
+belongs to the class $C^{k}$, for $k \in \{0, 1, 2, \dots, \infty\}$, if it
+has continuous partial derivatives up to order $k$. In particular, $C^{0}$
+means continuous, $C^{1}$ means continuously differentiable, $C^{2}$ means
+twice continuously differentiable, and $C^{\infty}$ means smooth
+(infinitely differentiable). For a single real variable, $g \in C^{k}$
+iff $g, g', \dots, g^{(k)}$ all exist and are continuous.
+\end{definition}
+
+\paragraph{Squared loss.}
+
+\begin{definition}[Squared loss]
+\[
+  L_{\mathrm{sq}}(y, \hat y) \;:=\; (y - \hat y)^{2}.
+\]
+\end{definition}
+
+\begin{mathnote}
+$L_{\mathrm{sq}}$ is the squared distance under the Euclidean metric on
+$\mathbb{R}$. As a function of $\hat y$ it is strictly convex, infinitely
+differentiable, and has constant second derivative $2$; the corresponding
+risk $R(f) = \mathbb{E}[(Y - f(X))^2]$ is a quadratic functional. By
+Pythagoras of $L^2(\mathcal{P})$, the Bayes-optimal predictor is the
+conditional mean $f^\ast(x) = \mathbb{E}[Y \mid X = x]$ (see \S 6).
+\end{mathnote}
+
+\begin{mlnote}
+Squared loss is the default for regression: it yields closed-form solutions
+in linear models (ordinary least squares), Gaussian likelihood
+interpretation, and tractable optimisation in neural nets (MSE loss).
+Its main weakness is high sensitivity to outliers, since each error is
+squared.
+\end{mlnote}
+
+\paragraph{Absolute loss.}
+
+\begin{definition}[Absolute loss]
+\[
+  L_{\mathrm{abs}}(y, \hat y) \;:=\; |y - \hat y|.
+\]
+\end{definition}
+
+\begin{mathnote}
+$L_{\mathrm{abs}}$ is convex but not differentiable at $\hat y = y$. The
+Bayes-optimal predictor for absolute loss is the conditional median
+$\mathrm{Median}(Y \mid X = x)$. The corresponding empirical procedure is
+least-absolute-deviations (LAD) regression, which is more robust to outliers
+than OLS but requires linear-programming solvers.
+\end{mathnote}
+
+\begin{mlnote}
+Absolute loss is used when residuals are heavy-tailed or when one wants
+robustness to outliers. Quantile loss
+$L_\tau(y, \hat y) := \tau (y - \hat y)_+ + (1 - \tau)(\hat y - y)_+$
+generalises it: the Bayes-optimal predictor becomes the $\tau$-th conditional
+quantile, enabling quantile regression.
+\end{mlnote}
+
+\paragraph{Huber loss.}
+
+\begin{definition}[Huber loss]
+For a threshold $\delta > 0$,
+\[
+  L_{\mathrm{Huber}}^{\delta}(y, \hat y) \;:=\;
+  \begin{cases}
+    \tfrac{1}{2}(y - \hat y)^{2} & \text{if } |y - \hat y| \leq \delta, \\[2pt]
+    \delta\,|y - \hat y| \,-\, \tfrac{1}{2}\delta^{2} & \text{if } |y - \hat y| > \delta.
+  \end{cases}
+\]
+\end{definition}
+
+\begin{mathnote}
+Huber loss is the convex combination -- in fact the unique $C^{1}$ function
+-- that is quadratic for small residuals and linear for large ones. It is
+$C^{1}$ but not $C^{2}$; its derivative is bounded by $\delta$, providing
+gradient clipping for free.
+\end{mathnote}
+
+\begin{mlnote}
+Huber loss interpolates between squared loss (efficient near the optimum)
+and absolute loss (robust to outliers). It is the standard choice in
+robust regression and is used in DQN-style reinforcement learning to
+stabilise Bellman-error targets.
+\end{mlnote}
+
+\section{Classification Losses}
+
+For discrete targets, the two canonical losses are
+\[
+  L_{0\text{-}1}(y, \hat y) \;=\; \mathbf{1}\{\hat y \neq y\}
+  \;=\; \begin{cases} 0, & \hat y = y,\\ 1, & \hat y \neq y, \end{cases}
+  \qquad \text{(0-1 loss)},
+\]
+\[
+  L_{\mathrm{hinge}}(y, \hat y) \;=\; \max\{0,\; 1 - y\hat y\}
+  \qquad \text{(hinge loss, for } \mathcal{Y} = \{-1, +1\},\ \hat y \in \mathbb{R}\text{)}.
+\]
+$L_{0\text{-}1}$ is the quantity we ultimately wish to minimise (the
+misclassification rate), but is non-convex and non-differentiable;
+$L_{\mathrm{hinge}}$ is a convex \emph{surrogate} that upper-bounds it under
+sign decoding.
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\paragraph{Indicator function.}
+
+\begin{definition}[Indicator function]
+For a set $X$ and a predicate $P(x)$ on $X$ (equivalently, a subset
+$A \subseteq X$), the \emph{indicator function} is
+\[
+  \mathbf{1}\{P(x)\} \;=\; \mathbf{1}_{A}(x) \;:=\;
+  \begin{cases} 1, & \text{if } P(x) \text{ is true (equivalently, } x \in A), \\
+                0, & \text{otherwise.} \end{cases}
+\]
+It takes values in $\{0, 1\}$, and its expectation under a distribution $p$
+is the probability of the predicate:
+$\mathbb{E}_{x \sim p}[\mathbf{1}\{P(x)\}] = \mathbb{P}(P(X))$.
+\end{definition}
+
+\paragraph{Subgradient and subdifferential.}
+
+\begin{definition}[Subdifferential]
+For a convex function $g : \mathbb{R}^{d} \to \mathbb{R}$ and a point $x_{0}$,
+the \emph{subdifferential} of $g$ at $x_{0}$ is the set
+\[
+  \partial g(x_{0}) \;:=\; \bigl\{\, v \in \mathbb{R}^{d} \;:\;
+    g(x) \geq g(x_{0}) + \langle v,\, x - x_{0}\rangle
+    \text{ for all } x \in \mathbb{R}^{d} \,\bigr\}.
+\]
+Elements of $\partial g(x_{0})$ are called \emph{subgradients}. If $g$ is
+differentiable at $x_{0}$, then $\partial g(x_{0}) = \{\nabla g(x_{0})\}$;
+at non-smooth points (e.g.\ the kink of $|x|$ at $x = 0$), the
+subdifferential is a non-singleton interval. A point $x_{0}$ is a global
+minimiser of $g$ iff $0 \in \partial g(x_{0})$.
+\end{definition}
+
+\paragraph{Zero-one loss.}
+
+\begin{definition}[0-1 loss]
+\[
+  L_{0\text{-}1}(y, \hat y) \;:=\; \mathbf{1}\{\hat y \neq y\}
+  \;=\; \begin{cases} 0 & \hat y = y, \\ 1 & \hat y \neq y. \end{cases}
+\]
+\end{definition}
+
+\begin{mathnote}
+$L_{0\text{-}1}$ is non-convex, non-continuous, and almost-everywhere flat;
+its gradient is zero wherever defined. Direct minimisation of empirical 0-1
+risk is NP-hard for most non-trivial hypothesis classes. The Bayes-optimal
+predictor is the conditional mode $f^{\ast}(x) = \arg\max_{y}
+\mathcal{P}(Y = y \mid X = x)$.
+\end{mathnote}
+
+\begin{mlnote}
+$L_{0\text{-}1}$ is what we ultimately want to minimise for classification --
+it is exactly the misclassification rate -- but the gradient-zero property
+makes it unusable in gradient-based training. This motivates
+\emph{surrogate losses}: convex upper bounds on $L_{0\text{-}1}$ that are
+tractable to optimise.
+\end{mlnote}
+
+\paragraph{Hinge loss.}
+
+\begin{definition}[Hinge loss]
+For $\mathcal{Y} = \{-1, +1\}$ and real-valued predictions
+$\hat y \in \mathbb{R}$,
+\[
+  L_{\mathrm{hinge}}(y, \hat y) \;:=\; \max\{0,\; 1 - y \hat y\}.
+\]
+\end{definition}
+
+\begin{mathnote}
+Hinge loss is convex, piecewise linear, and a surrogate (in fact, an upper
+bound) for $L_{0\text{-}1}$ under the sign-decoding rule $\hat{y}_{\text{class}} =
+\operatorname{sign}(\hat y)$. Its subdifferential at the kink $y \hat y = 1$
+contains $0$, which gives rise to the support-vector phenomenon: only points
+near the margin contribute non-zero subgradients.
+\end{mathnote}
+
+\begin{mlnote}
+Hinge loss is the defining loss of the support-vector machine (SVM). The
+"margin" $y \hat y \geq 1$ inside which the loss is zero is the geometric
+origin of the SVM's max-margin principle. Multi-class extensions
+(Crammer--Singer hinge) generalise this to $\mathcal{Y} = \{1, \dots, K\}$.
+\end{mlnote}
+
+\section{Probabilistic Losses: NLL, Cross-Entropy, KL}
+
+When the prediction is a probability distribution
+$\hat p \in \Delta(\mathcal{Y})$, three information-theoretic losses arise:
+\[
+  L_{\mathrm{NLL}}(y, \hat p) \;=\; -\log \hat p(y)
+  \qquad \text{(negative log-likelihood)},
+\]
+\[
+  H(p, \hat p) \;=\; -\sum_{y \in \mathcal{Y}} p(y) \log \hat p(y)
+  \qquad \text{(cross-entropy)},
+\]
+\[
+  \mathrm{KL}(p \,\|\, \hat p)
+  \;=\; \sum_{y \in \mathcal{Y}} p(y) \log \frac{p(y)}{\hat p(y)}
+  \qquad \text{(KL divergence)}.
+\]
+They are linked by the identity
+$H(p, \hat p) = H(p) + \mathrm{KL}(p \,\|\, \hat p)$, where $H(p) = -\sum p \log p$
+is the entropy. On a one-hot target $p = \delta_{y^{\ast}}$, all three
+reduce to $-\log \hat p(y^{\ast})$.
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\paragraph{Probability simplex.}
+
+\begin{definition}[Probability simplex]
+For a countable set $\mathcal{Y}$, the \emph{probability simplex} over
+$\mathcal{Y}$ is the set of all probability mass functions on it:
+\[
+  \Delta(\mathcal{Y}) \;:=\; \biggl\{ p : \mathcal{Y} \to [0, 1] \;\Big|\;
+    \sum_{y \in \mathcal{Y}} p(y) = 1 \biggr\}.
+\]
+For $|\mathcal{Y}| = K$ finite, $\Delta(\mathcal{Y})$ is the $(K-1)$-dimensional
+standard simplex embedded in $\mathbb{R}^{K}$:
+\(
+  \Delta_{K-1}
+  = \{p \in \mathbb{R}^{K} : p_k \geq 0,\ \sum_k p_k = 1\}.
+\)
+\end{definition}
+
+\paragraph{Dirac point mass.}
+
+\begin{definition}[Dirac point mass]
+For an element $y^{\ast} \in \mathcal{Y}$, the \emph{Dirac point mass} (or
+\emph{one-hot distribution}) at $y^{\ast}$ is the PMF
+\[
+  \delta_{y^{\ast}}(y) \;:=\; \mathbf{1}\{y = y^{\ast}\}
+  \;=\; \begin{cases} 1, & y = y^{\ast},\\ 0, & y \neq y^{\ast}. \end{cases}
+\]
+It is the extreme point of $\Delta(\mathcal{Y})$ supported at $y^{\ast}$.
+On a probability space, the corresponding measure is
+$\delta_{y^{\ast}}(A) := \mathbf{1}\{y^{\ast} \in A\}$.
+\end{definition}
+
+\paragraph{Gibbs' inequality and Cram\'er--Rao lower bound.}
+
+\begin{proposition}[Gibbs' inequality]
+For two PMFs $p, \hat p$ on a countable set $\mathcal{Y}$ with $\hat p(y) > 0$
+wherever $p(y) > 0$,
+\[
+  \mathrm{KL}(p \,\|\, \hat p) \;\geq\; 0,
+\]
+with equality if and only if $p = \hat p$. Equivalently,
+$H(p, \hat p) \geq H(p)$ -- the cross-entropy is bounded below by the entropy
+of $p$.
+\end{proposition}
+
+\begin{definition}[Fisher information matrix]
+For a parametric family $\{p_\theta : \theta \in \Theta \subseteq \mathbb{R}^{d}\}$
+satisfying standard regularity conditions (twice differentiability in $\theta$,
+support not depending on $\theta$, interchangeability of differentiation and
+integration), the \emph{Fisher information matrix} at $\theta$ is
+\[
+  I(\theta) \;:=\; \mathbb{E}_{Y \sim p_\theta}\!\Bigl[
+    \bigl(\nabla_\theta \log p_\theta(Y)\bigr)\bigl(\nabla_\theta \log p_\theta(Y)\bigr)^{\top}
+  \Bigr]
+  \;=\; -\,\mathbb{E}_{Y \sim p_\theta}\!\bigl[\nabla_\theta^{2} \log p_\theta(Y)\bigr].
+\]
+\end{definition}
+
+\begin{proposition}[Cram\'er--Rao lower bound]
+Under the regularity conditions above, any unbiased estimator
+$\widehat{\theta}_n$ of $\theta$ based on $n$ i.i.d.\ observations satisfies
+\[
+  \operatorname{Cov}(\widehat{\theta}_n) \;\succeq\; \frac{1}{n}\, I(\theta)^{-1},
+\]
+where $\succeq$ denotes the L\"owner (positive-semidefinite) order. An
+unbiased estimator attaining this bound is called \emph{efficient}; the
+maximum-likelihood estimator is asymptotically efficient under the same
+conditions.
+\end{proposition}
+
+\paragraph{Negative log-likelihood.}
+
+\begin{definition}[NLL]
+For a target $y \in \mathcal{Y}$ and a predicted distribution
+$\hat p \in \Delta(\mathcal{Y})$,
+\[
+  L_{\mathrm{NLL}}(y, \hat p) \;:=\; -\log \hat p(y).
+\]
+\end{definition}
+
+\begin{mathnote}
+Minimising the empirical NLL over a parametric family $\{\hat p_\theta\}$
+is the principle of \emph{maximum likelihood estimation} (MLE):
+$\arg\min_\theta \sum_i -\log \hat p_\theta(y_i \mid x_i) = \arg\max_\theta
+\sum_i \log \hat p_\theta(y_i \mid x_i)$. Under regularity conditions, the
+MLE is consistent, asymptotically normal, and asymptotically efficient
+(attains the Cram\'er--Rao lower bound).
+\end{mathnote}
+
+\begin{mlnote}
+NLL is the most-used loss in modern ML. Language-model pre-training,
+classification heads, generative models (VAEs, diffusion, autoregressive
+models) all optimise variants of NLL. It is the natural loss whenever the
+model outputs a probability distribution.
+\end{mlnote}
+
+\paragraph{Cross-entropy.}
+
+\begin{definition}[Cross-entropy]
+For two distributions $p, \hat p$ on the same countable set $\mathcal{Y}$,
+\[
+  H(p, \hat p) \;:=\; -\sum_{y \in \mathcal{Y}} p(y) \log \hat p(y).
+\]
+\end{definition}
+
+\begin{proposition}[Cross-entropy reduces to NLL on one-hot targets]
+If $p = \delta_{y^{\ast}}$ is the point mass at $y^{\ast}$, then
+\(
+  H(\delta_{y^{\ast}}, \hat p) = -\log \hat p(y^{\ast}) = L_{\mathrm{NLL}}(y^{\ast}, \hat p).
+\)
+\end{proposition}
+
+\begin{mathnote}
+$H(p, \hat p) = H(p) + \mathrm{KL}(p \,\|\, \hat p)$, where $H(p) := -\sum
+p \log p$ is the entropy of $p$. Since $H(p)$ does not depend on $\hat p$,
+minimising cross-entropy in $\hat p$ is equivalent to minimising the
+forward KL divergence $\mathrm{KL}(p \,\|\, \hat p)$.
+\end{mathnote}
+
+\begin{mlnote}
+In classification, the empirical distribution of labels is one-hot, so
+``cross-entropy loss'' and ``NLL'' are used interchangeably in practice.
+The PyTorch \texttt{CrossEntropyLoss} module is, technically, the
+composition of softmax + NLL with one-hot targets.
+\end{mlnote}
+
+\paragraph{Kullback--Leibler divergence as a loss.}
+
+\begin{definition}[KL divergence]
+\[
+  \mathrm{KL}(p \,\|\, \hat p) \;:=\; \sum_{y} p(y) \log \frac{p(y)}{\hat p(y)}
+  \;=\; \mathbb{E}_{y \sim p}\!\left[\log \frac{p(y)}{\hat p(y)}\right].
+\]
+\end{definition}
+
+\begin{mathnote}
+$\mathrm{KL}(p \,\|\, \hat p) \geq 0$ with equality iff $p = \hat p$
+(Gibbs' inequality). It is not symmetric:
+$\mathrm{KL}(p \,\|\, \hat p) \neq \mathrm{KL}(\hat p \,\|\, p)$ in general,
+and the two have qualitatively different behaviours -- ``forward'' KL is
+mass-covering, ``reverse'' KL is mode-seeking. The Pythagorean identity
+$H(p, \hat p) = H(p) + \mathrm{KL}(p \,\|\, \hat p)$ links cross-entropy
+and KL.
+\end{mathnote}
+
+\begin{mlnote}
+KL appears as a loss in variational inference (ELBO contains
+$\mathrm{KL}(q \,\|\, p)$), as a regulariser in RLHF and DPO
+(KL-regularised reward maximisation), and as a distillation loss
+($\mathrm{KL}(p_{\mathrm{teacher}} \,\|\, p_{\mathrm{student}})$). The
+asymmetry matters: choosing forward vs.\ reverse KL changes both the
+optimisation landscape and the qualitative shape of the learned distribution.
+\end{mlnote}
+
+\section{Bayes Risk and Bayes-Optimal Predictors}
+
+The \emph{Bayes risk} is the smallest achievable risk over all measurable
+predictors:
+\[
+  R^{\ast} \;:=\; \inf_{f \,\text{measurable}} R(f).
+\]
+A predictor attaining this infimum is called \emph{Bayes-optimal}. For each
+canonical loss, the Bayes-optimal predictor is a known functional of the
+conditional distribution $\mathcal{P}_{Y \mid X}$:
+\[
+  L_{\mathrm{sq}} \;\;\Longrightarrow\;\;
+  f^{\ast}(x) = \mathbb{E}[Y \mid X = x]
+  \qquad \text{(conditional mean)},
+\]
+\[
+  L_{\mathrm{abs}} \;\;\Longrightarrow\;\;
+  f^{\ast}(x) = \mathrm{Median}(Y \mid X = x)
+  \qquad \text{(conditional median)},
+\]
+\[
+  L_{0\text{-}1} \;\;\Longrightarrow\;\;
+  f^{\ast}(x) = \arg\max_{y \in \mathcal{Y}} \mathcal{P}(Y = y \mid X = x)
+  \qquad \text{(conditional mode)},
+\]
+\[
+  L_{\mathrm{NLL}} \;\;\Longrightarrow\;\;
+  \hat p^{\ast}(\cdot \mid x) = \mathcal{P}(\cdot \mid X = x)
+  \qquad \text{(true conditional distribution)}.
+\]
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\begin{definition}[Conditional median and conditional mode]
+For a real-valued random variable $Y$ with conditional distribution
+$\mathcal{P}_{Y \mid X = x}$, a \emph{conditional median} is any value
+$m \in \mathbb{R}$ satisfying
+\[
+  \mathbb{P}(Y \leq m \mid X = x) \;\geq\; \tfrac{1}{2}
+  \qquad \text{and} \qquad
+  \mathbb{P}(Y \geq m \mid X = x) \;\geq\; \tfrac{1}{2}.
+\]
+For discrete $\mathcal{Y}$, the \emph{conditional mode} is any maximiser of
+the conditional PMF:
+\[
+  \mathrm{Mode}(Y \mid X = x) \;\in\; \arg\max_{y \in \mathcal{Y}}
+  \mathbb{P}(Y = y \mid X = x).
+\]
+Neither the conditional median nor the conditional mode is required to be
+unique.
+\end{definition}
+
+\begin{definition}[Bayes risk and Bayes-optimal predictor]
+The \emph{Bayes risk} is the infimum of the risk over all measurable
+predictors:
+\[
+  R^{\ast} \;:=\; \inf_{f \,\text{measurable}} R(f).
+\]
+A \emph{Bayes-optimal predictor} is any $f^{\ast}$ attaining the infimum,
+$R(f^{\ast}) = R^{\ast}$.
+\end{definition}
+
+\begin{proposition}[Bayes-optimal predictors for canonical losses]
+Under mild regularity,
+\begin{enumerate}[label=(\roman*), leftmargin=2em]
+  \item \emph{Squared loss:}
+        $f^{\ast}(x) = \mathbb{E}[Y \mid X = x]$ (conditional mean).
+  \item \emph{Absolute loss:}
+        $f^{\ast}(x) = \mathrm{Median}(Y \mid X = x)$ (conditional median).
+  \item \emph{0-1 loss:}
+        $f^{\ast}(x) = \arg\max_{y \in \mathcal{Y}}
+                       \mathcal{P}(Y = y \mid X = x)$ (conditional mode).
+  \item \emph{Cross-entropy / NLL:}
+        $\hat p^{\ast}(\cdot \mid x) = \mathcal{P}(\cdot \mid X = x)$
+        (the true conditional distribution).
+\end{enumerate}
+\end{proposition}
+
+\begin{mathnote}
+Each Bayes-optimal predictor can be derived by minimising the conditional
+risk $\mathbb{E}[L(Y, \hat y) \mid X = x]$ pointwise in $\hat y$. For
+squared loss this is a quadratic in $\hat y$ minimised at the conditional
+mean; for cross-entropy it is a strictly convex functional on the simplex
+minimised at the true conditional distribution by Gibbs' inequality.
+\end{mathnote}
+
+\begin{mlnote}
+Bayes optimality is the irreducible benchmark: no predictor can do better
+on the population, no matter how powerful the hypothesis class. The
+\emph{excess risk} $R(f) - R^{\ast}$ decomposes into approximation error
+($\inf_{\mathcal{H}} R - R^{\ast}$) and estimation error
+($R(\widehat{f}_n) - \inf_{\mathcal{H}} R$). Larger $\mathcal{H}$ reduces
+the first and increases the second -- the bias--variance trade-off.
+\end{mlnote}
+
+\section{Regularised Risk and Structural Risk Minimisation}
+
+Adding a complexity penalty $\Omega(f) \geq 0$ to the empirical risk yields
+the \emph{regularised empirical risk}:
+\[
+  \widehat{R}_{n, \lambda}(f) \;:=\; \widehat{R}_n(f) \;+\; \lambda\, \Omega(f),
+  \qquad \lambda \geq 0.
+\]
+For parametric models $f_\theta$ with $\theta \in \mathbb{R}^{d}$, the
+canonical penalties are the $\ell^{p}$ norms,
+\[
+  \Omega_p(\theta) \;=\; \|\theta\|_p^{p}
+  \;=\; \sum_{j=1}^{d} |\theta_j|^{p},
+\]
+with $p = 2$ (\emph{ridge}, Tikhonov regularisation, weight decay) and
+$p = 1$ (\emph{lasso}, sparsity-inducing) by far the most widely used.
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Mathematical background.}
+
+\paragraph{Regularised empirical risk.}
+
+\begin{definition}[Regularised empirical risk]
+For a complexity penalty $\Omega : \mathcal{H} \to \mathbb{R}_{\geq 0}$ and
+regularisation strength $\lambda \geq 0$,
+\[
+  \widehat{R}_{n, \lambda}(f) \;:=\; \widehat{R}_n(f) + \lambda\,\Omega(f).
+\]
+The \emph{structural risk minimiser} is
+$\widehat{f}_{n, \lambda} \in \arg\min_{f \in \mathcal{H}} \widehat{R}_{n, \lambda}(f)$.
+\end{definition}
+
+\paragraph{$\ell^{p}$ norms.}
+
+\begin{definition}[$\ell^{p}$ norm]
+For $\theta \in \mathbb{R}^{d}$ and $p \in [1, \infty)$, the \emph{$\ell^{p}$
+norm} is
+\[
+  \|\theta\|_{p} \;:=\; \Biggl(\sum_{j=1}^{d} |\theta_j|^{p}\Biggr)^{1/p}.
+\]
+The limiting cases are
+$\|\theta\|_{\infty} := \max_{j} |\theta_{j}|$ and, for $p < 1$,
+$\|\cdot\|_{p}$ is a quasi-norm. For $p \geq 1$, $\|\cdot\|_{p}$ satisfies
+the three norm axioms (positivity, absolute homogeneity, triangle
+inequality), is convex, and is strictly convex iff $p > 1$.
+\end{definition}
+
+\paragraph{Probability density functions.}
+
+\begin{definition}[Probability density function]
+For a probability measure $\mu$ on $\mathbb{R}^{d}$, a \emph{probability
+density function} (PDF) with respect to the Lebesgue measure $\mathrm{d}\theta$
+is a non-negative measurable function $p : \mathbb{R}^{d} \to \mathbb{R}_{\geq 0}$
+such that
+\[
+  \mu(A) \;=\; \int_{A} p(\theta)\, \mathrm{d}\theta
+  \qquad \text{for every measurable } A \subseteq \mathbb{R}^{d}.
+\]
+By the Radon--Nikodym theorem, such a density exists if and only if $\mu$
+is \emph{absolutely continuous} with respect to the Lebesgue measure -- i.e.\
+$\mu(A) = 0$ whenever the Lebesgue measure of $A$ is zero. The total mass
+satisfies $\int_{\mathbb{R}^{d}} p(\theta)\, \mathrm{d}\theta = 1$.
+\end{definition}
+
+\paragraph{Maximum a posteriori estimation.}
+
+\begin{definition}[MAP estimate]
+Given a prior PDF $\pi$ on a parameter $\theta \in \mathbb{R}^{d}$ and a
+likelihood $p_\theta(\mathcal{D})$ of observed data $\mathcal{D}$, Bayes'
+rule gives the \emph{posterior}
+\[
+  \pi(\theta \mid \mathcal{D})
+  \;=\; \frac{p_\theta(\mathcal{D})\, \pi(\theta)}{\int p_{\theta'}(\mathcal{D})\, \pi(\theta')\, \mathrm{d}\theta'}
+  \;\propto\; p_\theta(\mathcal{D})\, \pi(\theta).
+\]
+The \emph{maximum-a-posteriori (MAP) estimate} is the posterior mode:
+\[
+  \widehat{\theta}_{\mathrm{MAP}}
+  \;:=\; \arg\max_{\theta \in \mathbb{R}^{d}} \pi(\theta \mid \mathcal{D})
+  \;=\; \arg\max_{\theta} \Bigl[\,\log p_\theta(\mathcal{D}) \,+\, \log \pi(\theta)\,\Bigr].
+\]
+When the prior is uniform, $\widehat{\theta}_{\mathrm{MAP}}$ reduces to the
+maximum-likelihood estimate.
+\end{definition}
+
+\paragraph{Gaussian and Laplace distributions.}
+
+\begin{definition}[Multivariate Gaussian]
+The \emph{multivariate Gaussian distribution} $\mathcal{N}(\mu, \Sigma)$ on
+$\mathbb{R}^{d}$, with mean $\mu \in \mathbb{R}^{d}$ and positive-definite
+covariance $\Sigma \in \mathbb{R}^{d \times d}$, has density
+\[
+  \mathcal{N}(\theta;\, \mu, \Sigma)
+  \;=\; \frac{1}{(2\pi)^{d/2}\, |\Sigma|^{1/2}}\,
+  \exp\!\Bigl(-\tfrac{1}{2}(\theta - \mu)^{\top} \Sigma^{-1} (\theta - \mu)\Bigr).
+\]
+For isotropic covariance $\Sigma = \sigma^{2} I$, the negative log-density
+equals $\tfrac{1}{2 \sigma^{2}} \|\theta - \mu\|_{2}^{2}$ up to an additive
+constant.
+\end{definition}
+
+\begin{definition}[Laplace distribution]
+The \emph{Laplace distribution} with location $\mu \in \mathbb{R}$ and
+scale $b > 0$ on $\mathbb{R}$ has density
+\[
+  \mathrm{Laplace}(\theta;\, \mu, b) \;=\; \frac{1}{2 b}
+  \exp\!\Bigl(-\frac{|\theta - \mu|}{b}\Bigr).
+\]
+For an i.i.d.\ Laplace prior on $\theta \in \mathbb{R}^{d}$ with $\mu = 0$,
+the negative log-density equals $\tfrac{1}{b}\|\theta\|_{1}$ up to an additive
+constant.
+\end{definition}
+
+\paragraph{Common penalties (Tikhonov / ridge, lasso).}
+
+\begin{definition}[$\ell^{p}$ penalties]
+For a parametric model $f_\theta$ with $\theta \in \mathbb{R}^{d}$, the
+$\ell^{p}$ penalty is the $p$-th power of the $\ell^{p}$ norm:
+\[
+  \Omega_p(\theta) \;:=\; \|\theta\|_{p}^{p}
+  \;=\; \sum_{j=1}^{d} |\theta_j|^{p}.
+\]
+The cases $p = 2$ (\emph{ridge}, Tikhonov) and $p = 1$ (\emph{lasso}) are
+canonical.
+\end{definition}
+
+\begin{proposition}[Bayesian interpretation]
+For a model $\hat p_\theta(y \mid x)$ trained by MLE with NLL, adding a
+penalty $\lambda \Omega(\theta)$ corresponds to a maximum a posteriori
+(MAP) estimate under a prior $\pi(\theta) \propto \exp(-\lambda \Omega(\theta))$:
+\begin{itemize}[leftmargin=2em]
+  \item $\Omega(\theta) = \tfrac{1}{2}\|\theta\|_2^{2}$ corresponds to a
+        Gaussian prior $\mathcal{N}(0, \lambda^{-1} I)$.
+  \item $\Omega(\theta) = \|\theta\|_1$ corresponds to an i.i.d.\ Laplace
+        prior with scale $1/\lambda$.
+\end{itemize}
+\end{proposition}
+
+\begin{mathnote}
+$\ell_2$ penalty preserves convexity and differentiability; the regularised quadratic problem
+has closed form $\hat{\theta}=(X^\top X+\lambda I)^{-1}X^\top y$ or
+$\hat{\theta}=(X^\top X+n\lambda I)^{-1}X^\top y$, depending on the scaling convention.
+Under the empirical-risk convention
+$\frac1n\sum_i (y_i-x_i^\top\theta)^2+\lambda\|\theta\|_2^2$, the latter is the consistent
+form. $\ell_1$ is convex but non-differentiable at the origin; its subdifferential includes
+$0$ in a coordinate direction whenever $|\partial \widehat R_n/\partial\theta_j|\le\lambda$,
+which produces exact sparsity, i.e. zero coefficients.
+\end{mathnote}
+
+\begin{mlnote}
+$\ell^2$ regularisation is called \emph{weight decay} in deep learning and
+is equivalent (for SGD with fixed learning rate) to multiplicatively
+shrinking weights each step. $\ell^1$ regularisation is used for sparse
+feature selection. Other "structural" regularisers (dropout, data
+augmentation, early stopping) admit similar Bayesian or implicit
+interpretations and are studied as instances of structural risk
+minimisation.
+\end{mlnote}
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Summary.}
+The supervised learning problem has four moving parts:
+\begin{itemize}[leftmargin=2em]
+  \item a \emph{data distribution} $\mathcal{P}$ on $\mathcal{X} \times \mathcal{Y}$;
+  \item a \emph{hypothesis class} $\mathcal{H}$ of measurable predictors;
+  \item a \emph{loss function} $L : \mathcal{Y} \times \widehat{\mathcal{Y}}
+        \to \mathbb{R}_{\geq 0}$;
+  \item a \emph{learning rule} that selects some $\widehat{f} \in \mathcal{H}$
+        from data.
+\end{itemize}
+The loss defines the \emph{risk}
+$R(f) = \mathbb{E}_\mathcal{P}[L(Y, f(X))]$, which the learning rule
+approximates via the \emph{empirical risk}
+$\widehat{R}_n(f) = \tfrac{1}{n}\sum_i L(y_i, f(x_i))$, optionally penalised
+by $\lambda \Omega(f)$. The \emph{Bayes risk} $R^{\ast}$ is the
+distribution-dependent lower bound on $R$; for canonical losses, the
+Bayes-optimal predictor has a closed form -- conditional mean for squared
+loss, conditional median for absolute, conditional mode for 0-1, and the
+true conditional distribution for cross-entropy.
+
+Every named loss in this document is a different choice within the same
+framework. Choosing a loss is, mathematically, choosing which functional of
+the conditional distribution $\mathcal{P}_{Y \mid X}$ the Bayes-optimal
+predictor recovers; choosing a regulariser is, equivalently, choosing a
+prior over the hypothesis class. Every other ML loss (contrastive,
+preference-based DPO, RL-style policy-gradient surrogates) can be read as
+an instance or extension of this same scaffold.
+
+\section*{Copyright}
+
+\textcopyright\ 2026 Likerener. All rights reserved.
+
+\section*{License}
+
+\textcopyright\ 2026 Likerener. This work is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+
+If you use, share, or adapt these notes, please credit the author as follows:
+
+\begin{quote}
+Likerener. \textit{Mathematical Foundations of Loss Functions in Machine Learning}. 2026.
+\end{quote}
+
+\bigskip
+\hrule
+\bigskip
+
+\begin{comment}
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+The following references are grouped by topic; for any object defined in the
+document, one of these texts gives a fuller treatment with proofs.
+
+\paragraph{Measure-theoretic probability.}
+P.~Billingsley, \emph{Probability and Measure} (3rd ed., 1995);
+R.~Durrett, \emph{Probability: Theory and Examples} (5th ed., 2019);
+D.~Williams, \emph{Probability with Martingales} (1991);
+O.~Kallenberg, \emph{Foundations of Modern Probability} (2nd ed., 2002).
+
+\paragraph{Real analysis and measure theory.}
+W.~Rudin, \emph{Real and Complex Analysis} (3rd ed., 1987);
+G.~B.~Folland, \emph{Real Analysis: Modern Techniques and Their Applications}
+(2nd ed., 1999).
+
+\paragraph{Statistical inference and estimation theory.}
+G.~Casella and R.~L.~Berger, \emph{Statistical Inference} (2nd ed., 2002);
+E.~L.~Lehmann and G.~Casella, \emph{Theory of Point Estimation}
+(2nd ed., 1998) -- canonical reference for Cram\'er--Rao, Fisher information,
+asymptotic efficiency;
+L.~Wasserman, \emph{All of Statistics} (2004).
+
+\paragraph{Statistical learning theory.}
+L.~Devroye, L.~Gy\"orfi, and G.~Lugosi, \emph{A Probabilistic Theory of
+Pattern Recognition} (1996);
+S.~Shalev-Shwartz and S.~Ben-David, \emph{Understanding Machine Learning:
+From Theory to Algorithms} (2014);
+T.~Hastie, R.~Tibshirani, and J.~Friedman, \emph{The Elements of Statistical
+Learning} (2nd ed., 2009).
+
+\paragraph{Concentration inequalities.}
+S.~Boucheron, G.~Lugosi, and P.~Massart, \emph{Concentration Inequalities:
+A Nonasymptotic Theory of Independence} (2013) -- the modern reference for
+Hoeffding, Bernstein, McDiarmid, and friends.
+
+\paragraph{Convex analysis and optimisation.}
+R.~T.~Rockafellar, \emph{Convex Analysis} (1970) -- canonical reference for
+subdifferentials, conjugate duality, and convex functions;
+S.~Boyd and L.~Vandenberghe, \emph{Convex Optimization} (2004);
+Y.~Nesterov, \emph{Lectures on Convex Optimization} (2nd ed., 2018).
+
+\paragraph{Information theory.}
+T.~M.~Cover and J.~A.~Thomas, \emph{Elements of Information Theory}
+(2nd ed., 2006) -- canonical reference for entropy, cross-entropy, KL
+divergence, and Gibbs' inequality;
+D.~J.~C.~MacKay, \emph{Information Theory, Inference, and Learning
+Algorithms} (2003).
+
+\paragraph{Bayesian inference and decision theory.}
+C.~P.~Robert, \emph{The Bayesian Choice} (2nd ed., 2007);
+A.~Gelman, J.~B.~Carlin, H.~S.~Stern, D.~B.~Dunson, A.~Vehtari, and
+D.~B.~Rubin, \emph{Bayesian Data Analysis} (3rd ed., 2013);
+J.~O.~Berger, \emph{Statistical Decision Theory and Bayesian Analysis}
+(2nd ed., 1985) -- for Bayes risk, decision rules, and admissibility.
+
+\paragraph{Probabilistic machine learning.}
+C.~M.~Bishop, \emph{Pattern Recognition and Machine Learning} (2006);
+K.~P.~Murphy, \emph{Probabilistic Machine Learning: An Introduction} (2022)
+and \emph{Probabilistic Machine Learning: Advanced Topics} (2023).
+
+\paragraph{Foundational papers.}
+W.~Hoeffding, ``Probability Inequalities for Sums of Bounded Random
+Variables,'' \emph{Journal of the American Statistical Association}, 58(301):13--30, 1963;
+P.~L.~Bartlett and S.~Mendelson, ``Rademacher and Gaussian Complexities:
+Risk Bounds and Structural Results,'' \emph{Journal of Machine Learning
+Research}, 3:463--482, 2002.
+\end{comment}
+\end{document}
